@@ -77,8 +77,8 @@ def render_set(model_path, load2gpt_on_the_fly, name, iteration, views, gaussian
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(depth, os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"))
-    renderings = np.stack(renderings, 0).transpose(0, 2, 3, 1)
-    imageio.mimwrite(os.path.join(render_path, 'video.mp4'), renderings, fps=30, quality=8)
+    # renderings = np.stack(renderings, 0).transpose(0, 2, 3, 1)
+    # imageio.mimwrite(os.path.join(render_path, 'video.mp4'), renderings, fps=30, quality=8)
 
     # Measurement
     psnr_test = torch.stack(psnr_list).mean()
@@ -223,7 +223,7 @@ if __name__ == "__main__":
                         default=[5000, 6000, 7_000] + list(range(10000, 80_0001, 1000)))
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[7_000, 10_000, 20_000, 30_000, 40000])
     # parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--deform-type", type=str, default='mlp')
+    parser.add_argument("--deform-type", type=str, default='node')
 
     args = get_combined_args(parser)
     if not args.model_path.endswith(args.deform_type):

@@ -162,7 +162,8 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, msk_folder=
             image = np.concatenate([np.asarray(image), np.asarray(mask)], axis=-1)
             image = Image.fromarray(image)
 
-        fid = int(image_name) / (num_frames - 1)
+        # fid = int(image_name) / (num_frames - 1)
+        fid = idx / (num_frames - 1) if num_frames > 1 else 0.5
         cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
                               image_path=image_path, image_name=image_name, width=width, height=height, fid=fid)
         cam_infos.append(cam_info)
@@ -197,6 +198,58 @@ def storePly(path, xyz, rgb):
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
 
+
+def readDust3rColmapSceneInfo(path, images, eval):
+    sparse_name = "sparse" if os.path.exists(os.path.join(path, "sparse")) else "colmap_sparse"
+    try:
+        cameras_extrinsic_file = os.path.join(path, f"{sparse_name}/0", "images.bin")
+        cameras_intrinsic_file = os.path.join(path, f"{sparse_name}/0", "cameras.bin")
+        cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
+        cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)
+    except:
+        cameras_extrinsic_file = os.path.join(path, f"{sparse_name}/0", "images.txt")
+        cameras_intrinsic_file = os.path.join(path, f"{sparse_name}/0", "cameras.txt")
+        cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
+        cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
+
+    reading_dir = "images" if images == None else images
+    cam_infos_unsorted = readColmapCameras(cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, reading_dir))
+    train_cam_infos = sorted(cam_infos_unsorted.copy(), key=lambda x: x.image_name)
+
+    if eval:
+        cameras_extrinsic_file = os.path.join(path, "init_test_pose/sparse/0", "images.txt")
+        cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
+        assert len(cam_extrinsics) == 1, "Only one camera is supported for test set."
+        cam_extrinsics[1] = cam_extrinsics[1]._replace(name=f"1_{cam_extrinsics[1].name}")  # the only key in the test set is 1
+        cam_intrinsics = {1: cam_intrinsics[1]}  # we assume the same intrinsic for all test cameras
+        test_cam_infos = readColmapCameras(cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, "init_test_pose/images"))
+    else:
+        test_cam_infos = []
+
+    nerf_normalization = getNerfppNorm(train_cam_infos)
+
+    ply_path = os.path.join(path, f"{sparse_name}/0/points3D.ply")
+    bin_path = os.path.join(path, f"{sparse_name}/0/points3D.bin")
+    txt_path = os.path.join(path, f"{sparse_name}/0/points3D.txt")
+    if not os.path.exists(ply_path):
+        print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
+        try:
+            xyz, rgb, _ = read_points3D_binary(bin_path)
+        except:
+            xyz, rgb, _ = read_points3D_text(txt_path)
+        storePly(ply_path, xyz, rgb)
+
+    try:
+        pcd = fetchPly(ply_path)
+    except:
+        pcd = None
+
+    scene_info = SceneInfo(point_cloud=pcd,
+                           train_cameras=train_cam_infos,
+                           test_cameras=test_cam_infos,
+                           nerf_normalization=nerf_normalization,
+                           ply_path=ply_path)
+    return scene_info
 
 def readColmapSceneInfo(path, images, eval, llffhold=16, apply_cam_norm=False, recenter_by_pcl=False):
     sparse_name = "sparse" if os.path.exists(os.path.join(path, "sparse")) else "colmap_sparse"
@@ -947,6 +1000,7 @@ def readCMUSceneInfo(path, apply_cam_norm=True, recenter_by_pcl=True):
 
 
 sceneLoadTypeCallbacks = {
+    "Dust3rColmap": readDust3rColmapSceneInfo,
     "Colmap": readColmapSceneInfo,
     # colmap dataset reader from official 3D Gaussian [https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/]
     "Blender": readNerfSyntheticInfo,

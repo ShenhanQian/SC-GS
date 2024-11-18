@@ -207,7 +207,8 @@ def matrix_to_quaternion(matrix: torch.Tensor) -> torch.Tensor:
 
 def get_embedder(multires, i=1):
     if i == -1:
-        return nn.Identity(), 3
+        # return nn.Identity(), 3
+        return nn.Identity(), 1
 
     embed_kwargs = {
         'include_input': True,
@@ -324,7 +325,8 @@ class DeformNetwork(nn.Module):
             self.embed_time_fn = ProgressiveBandFrequency(in_channels=1, n_frequencies=self.t_multires)
             time_input_ch = self.embed_time_fn.n_output_dims
         else:
-            self.embed_time_fn, time_input_ch = get_embedder(self.t_multires, 1)
+            # self.embed_time_fn, time_input_ch = get_embedder(self.t_multires, 1)
+            self.embed_time_fn, time_input_ch = get_embedder(self.t_multires, -1)
         self.embed_fn, xyz_input_ch = get_embedder(multires, 3)
         self.input_ch = xyz_input_ch + time_input_ch
 

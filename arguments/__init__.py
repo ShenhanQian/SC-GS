@@ -94,27 +94,27 @@ class PipelineParams(ParamGroup):
         self.debug = False
         super().__init__(parser, "Pipeline Parameters")
 
-
+lr_scale = 1.0
 class OptimizationParams(ParamGroup):
     def __init__(self, parser):
-        self.iterations = 80_000
-        self.warm_up = 3_000
-        self.dynamic_color_warm_up = 20_000
-        self.position_lr_init = 0.00016
-        self.position_lr_final = 0.0000016
+        self.iterations = 10_000
+        self.warm_up = 700
+        self.dynamic_color_warm_up = 5_000
+        self.position_lr_init = 0.00016*lr_scale
+        self.position_lr_final = 0.0000016*lr_scale
         self.position_lr_delay_mult = 0.01
-        self.position_lr_max_steps = 30_000
-        self.deform_lr_max_steps = 40_000
+        self.position_lr_max_steps = 7_000  # 5_000
+        self.deform_lr_max_steps = 6_000  # 4_000
         self.feature_lr = 0.0025
         self.opacity_lr = 0.05
-        self.scaling_lr = 0.001
+        self.scaling_lr = 0.001*lr_scale
         self.rotation_lr = 0.001
         self.percent_dense = 0.01
         self.lambda_dssim = 0.2
-        self.densification_interval = 100
-        self.opacity_reset_interval = 3000
+        self.densification_interval = 100  # 300
+        self.opacity_reset_interval = 3000  #1000
         self.densify_from_iter = 500
-        self.densify_until_iter = 50_000
+        self.densify_until_iter = 6_000
         self.densify_grad_threshold = 0.0002
         self.oneupSHdegree_step = 1000
         self.random_bg_color = False
@@ -131,8 +131,8 @@ class OptimizationParams(ParamGroup):
 
         self.random_init_deform_gs = False
         self.node_warm_up = 2_000
-        self.iterations_node_sampling = 7500
-        self.iterations_node_rendering = 10000
+        self.iterations_node_sampling = 2999
+        self.iterations_node_rendering = 3000 # 3000
 
         self.progressive_train = False
         self.progressive_train_node = False

@@ -1002,6 +1002,8 @@ class GUI:
                     self.train_step()
     
     def train_step(self):
+        self.iteration += 1
+
         if network_gui.conn == None:
             network_gui.try_connect()
         while network_gui.conn != None:
@@ -1158,7 +1160,7 @@ class GUI:
             # Progress bar
             self.ema_loss_for_log = 0.4 * loss.item() + 0.6 * self.ema_loss_for_log
             if self.iteration % 10 == 0:
-                self.progress_bar.set_postfix({"Loss": f"{self.ema_loss_for_log:.{7}f}"})
+                self.progress_bar.set_postfix({"Loss": f"{self.ema_loss_for_log:.{7}f}", "#Points": self.gaussians.get_xyz.shape[0]})
                 self.progress_bar.update(10)
             if self.iteration == self.opt.iterations:
                 self.progress_bar.close()
@@ -1218,7 +1220,6 @@ class GUI:
             )
         else:
             self.progress_bar.set_description("Best PSNR={} in Iteration {}, SSIM={}, LPIPS={}, MS-SSIM={}, ALex-LPIPS={}".format('%.5f' % self.best_psnr, self.best_iteration, '%.5f' % self.best_ssim, '%.5f' % self.best_lpips, '%.5f' % self.best_ms_ssim, '%.5f' % self.best_alex_lpips))
-        self.iteration += 1
 
         if self.gui:
             dpg.set_value(
@@ -1227,6 +1228,8 @@ class GUI:
             )
    
     def train_node_rendering_step(self):
+        self.iteration_node_rendering += 1
+
         # Pick a random Camera
         if not self.viewpoint_stack:
             if self.opt.progressive_train_node and self.iteration_node_rendering < int(self.opt.progressive_stage_steps / self.opt.progressive_stage_ratio) + self.opt.node_warm_up:
@@ -1383,8 +1386,6 @@ class GUI:
 
         if self.dataset.load2gpu_on_the_fly:
             viewpoint_cam.load2device('cpu')
-
-        self.iteration_node_rendering += 1
 
         if self.gui:
             dpg.set_value(
@@ -1863,13 +1864,13 @@ if __name__ == "__main__":
     parser.add_argument('--port', type=int, default=6009)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int,
-                        default=[5000, 6000, 7_000] + list(range(8000, 100_0001, 1000)))
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[7_000, 10_000, 20_000, 30_000, 40000])
+                        default=[])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--deform-type", type=str, default='mlp')
 
     args = parser.parse_args(sys.argv[1:])
-    args.save_iterations.append(args.iterations)
+    args.save_iterations.append(args.iterations - args.iterations_node_rendering)
     args.test_iterations = list(range(1000, args.iterations+1, 1000))
 
     if not args.model_path.endswith(args.deform_type):

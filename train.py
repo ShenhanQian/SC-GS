@@ -66,8 +66,9 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
     if iteration in testing_iterations:
         torch.cuda.empty_cache()
         validation_configs = ({'name': 'test', 'cameras': scene.getTestCameras()},
-                              {'name': 'train',
-                               'cameras': [scene.getTrainCameras()[idx % len(scene.getTrainCameras())] for idx in range(5, 30, 5)]})
+                              {'name': 'train','cameras': scene.getTrainCameras()})
+        if validation_configs[1]['cameras'] and len(validation_configs[1]['cameras']) > 5:
+            validation_configs[1]['cameras'] = validation_configs[1]['cameras'][::len(validation_configs[1]['cameras'])//5]
         for config in validation_configs:
             if config['cameras'] and len(config['cameras']) > 0:
                 # images = torch.tensor([], device="cuda")
@@ -106,9 +107,9 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                     if load2gpu_on_the_fly:
                         viewpoint.load2device('cpu')
                     if tb_writer and (idx < 5):
-                        tb_writer.add_images(config['name'] + "_view_{}/render".format(viewpoint.image_name), image[None], global_step=iteration)
+                        tb_writer.add_images(config['name'] + "_view_{}/render".format(idx), image[None], global_step=iteration)
                         if iteration == testing_iterations[0]:
-                            tb_writer.add_images(config['name'] + "_view_{}/ground_truth".format(viewpoint.image_name), gt_image[None], global_step=iteration)
+                            tb_writer.add_images(config['name'] + "_view_{}/ground_truth".format(idx), gt_image[None], global_step=iteration)
 
                 l1_test = torch.stack(l1_list).mean()
                 psnr_test = torch.stack(psnr_list).mean()

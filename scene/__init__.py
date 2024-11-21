@@ -40,6 +40,7 @@ class Scene:
 
         self.train_cameras = {}
         self.test_cameras = {}
+        self.video_cameras = {}
 
         if os.path.exists(os.path.join(args.source_path, "sparse")) or os.path.exists(os.path.join(args.source_path, "colmap_sparse")):
             if os.path.exists(os.path.join(args.source_path, "init_test_pose")):
@@ -76,6 +77,8 @@ class Scene:
                 camlist.extend(scene_info.test_cameras)
             if scene_info.train_cameras:
                 camlist.extend(scene_info.train_cameras)
+            if scene_info.video_cameras:
+                camlist.extend(scene_info.video_cameras)
             for id, cam in enumerate(camlist):
                 json_cams.append(camera_to_JSON(id, cam))
             with open(os.path.join(self.model_path, "cameras.json"), 'w') as file:
@@ -99,7 +102,8 @@ class Scene:
             self.train_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.train_cameras, resolution_scale, args, flow_dirs_list)
             print("Loading Test Cameras")
             self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, args)
-
+            print("Loading Video Cameras")
+            self.video_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.video_cameras, resolution_scale, args)
         if self.loaded_iter:
             self.gaussians.load_ply(os.path.join(self.model_path,
                                                  "point_cloud",
@@ -118,3 +122,6 @@ class Scene:
 
     def getTestCameras(self, scale=1.0):
         return self.test_cameras[scale]
+
+    def getVideoCameras(self, scale=1.0):
+        return self.video_cameras[scale]
